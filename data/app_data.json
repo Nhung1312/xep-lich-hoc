@@ -385,12 +385,39 @@
   },
   "groups": [
     {
-      "id": "grp_1788950662181_756",
-      "code": "7NNGC589",
-      "name": "7 NÂNG CAO",
+      "id": "grp_toan8a",
+      "code": "TOAN8A26",
+      "name": "Toán 8A - Nâng Cao",
       "subject": "Toán",
-      "grade": "Khối 7",
-      "maxStudents": 30,
+      "grade": "Khối 8",
+      "maxStudents": 8,
+      "sessionsPerWeek": 2,
+      "durationMinutes": 90,
+      "allowedDays": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "allowedSlots": [
+        "c3",
+        "c4",
+        "ct"
+      ],
+      "teacherId": "teacher_1",
+      "isLocked": false,
+      "status": "draft",
+      "createdAt": "2026-09-01T08:00:00.000Z"
+    },
+    {
+      "id": "grp_toan9onthi",
+      "code": "TOAN9VIP",
+      "name": "Toán 9 - Luyện Thi Vào 10",
+      "subject": "Toán",
+      "grade": "Khối 9",
+      "maxStudents": 6,
       "sessionsPerWeek": 2,
       "durationMinutes": 90,
       "allowedDays": [
@@ -412,12 +439,481 @@
       "teacherId": "teacher_1",
       "isLocked": false,
       "status": "draft",
-      "createdAt": "2026-09-09T10:44:22.181Z"
+      "createdAt": "2026-09-02T08:00:00.000Z"
+    },
+    {
+      "id": "grp_hinh8b",
+      "code": "HINH8B01",
+      "name": "Hình Học 8 Chuyên Sâu",
+      "subject": "Hình Học",
+      "grade": "Khối 8",
+      "maxStudents": 6,
+      "sessionsPerWeek": 1,
+      "durationMinutes": 90,
+      "allowedDays": [
+        "3",
+        "5",
+        "7"
+      ],
+      "allowedSlots": [
+        "c4",
+        "ct"
+      ],
+      "teacherId": "teacher_1",
+      "isLocked": false,
+      "status": "draft",
+      "createdAt": "2026-09-03T08:00:00.000Z"
+    },
+    {
+      "id": "grp_1788949591579_490",
+      "code": "NHMTO310",
+      "name": "Nhóm Toán 9 VIP",
+      "subject": "Toán",
+      "grade": "9",
+      "maxStudents": 8,
+      "sessionsPerWeek": 2,
+      "durationMinutes": 90,
+      "allowedDays": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "cn"
+      ],
+      "allowedSlots": [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "ct"
+      ],
+      "teacherId": "teacher_1",
+      "isLocked": false,
+      "status": "draft",
+      "createdAt": "2026-09-09T10:26:31.579Z"
+    },
+    {
+      "id": "grp_1788949613542_644",
+      "code": "NHMTO495",
+      "name": "Nhóm Toán 9 Thầy An",
+      "subject": "Toán",
+      "grade": "9",
+      "maxStudents": 8,
+      "sessionsPerWeek": 2,
+      "durationMinutes": 90,
+      "allowedDays": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "cn"
+      ],
+      "allowedSlots": [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "ct"
+      ],
+      "teacherId": "teacher_1",
+      "isLocked": false,
+      "status": "tentative",
+      "createdAt": "2026-09-09T10:26:53.542Z",
+      "selectedOptionId": "opt_grp_1788949613542_644_2ct_4ct"
+    },
+    {
+      "id": "grp_1788953864976_668",
+      "code": "LPTON617",
+      "name": "Lớp Toán 9 Chuyên",
+      "subject": "Toán",
+      "grade": "Khối 9",
+      "maxStudents": 8,
+      "sessionsPerWeek": 2,
+      "durationMinutes": 90,
+      "allowedDays": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "allowedSlots": [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "ct"
+      ],
+      "teacherId": "teacher_1",
+      "isLocked": false,
+      "status": "tentative",
+      "createdAt": "2026-09-09T11:37:44.976Z",
+      "selectedOptionId": "opt_grp_1788953864976_668_4c3_6c3"
     }
   ],
-  "students": [],
-  "availabilities": {},
-  "schedules": [],
+  "students": [
+    {
+      "id": "stu_1",
+      "name": "Nguyễn Hoàng Minh",
+      "phone": "0981 112 233",
+      "parentName": "Bác Minh",
+      "groupId": "grp_toan8a",
+      "joinedAt": "2026-09-03T09:00:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_1_nz2hua"
+    },
+    {
+      "id": "stu_2",
+      "name": "Trần Thảo Linh",
+      "phone": "0982 223 344",
+      "parentName": "Cô Linh",
+      "groupId": "grp_toan8a",
+      "joinedAt": "2026-09-03T09:30:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_2_s593gs"
+    },
+    {
+      "id": "stu_3",
+      "name": "Lê Bảo Nam",
+      "phone": "0983 334 455",
+      "parentName": "Chú Nam",
+      "groupId": "grp_toan8a",
+      "joinedAt": "2026-09-03T10:00:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_3_gl96fy"
+    },
+    {
+      "id": "stu_4",
+      "name": "Phạm Quỳnh Anh",
+      "phone": "0984 445 566",
+      "parentName": "Chị Quỳnh",
+      "groupId": "grp_toan8a",
+      "joinedAt": "2026-09-04T08:00:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_4_d6tzuo"
+    },
+    {
+      "id": "stu_5",
+      "name": "Đặng Tuấn Khang",
+      "phone": "0985 556 677",
+      "parentName": "Anh Khang",
+      "groupId": "grp_toan8a",
+      "joinedAt": "2026-09-04T10:15:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_5_o7lvcu"
+    },
+    {
+      "id": "stu_6",
+      "name": "Vũ Ngọc Hân",
+      "phone": "0986 667 788",
+      "parentName": "Cô Hân",
+      "groupId": "grp_toan8a",
+      "joinedAt": "2026-09-05T11:00:00.000Z",
+      "hasSubmitted": false,
+      "parentToken": "pt_stu_6_dwb2tu"
+    },
+    {
+      "id": "stu_7",
+      "name": "Bùi Đức Anh",
+      "phone": "0987 778 899",
+      "parentName": "Bác Đức",
+      "groupId": "grp_toan9onthi",
+      "joinedAt": "2026-09-05T14:00:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_7_vjo1vh"
+    },
+    {
+      "id": "stu_8",
+      "name": "Hoàng Mai Phương",
+      "phone": "0988 889 900",
+      "parentName": "Cô Mai",
+      "groupId": "grp_toan9onthi",
+      "joinedAt": "2026-09-06T09:00:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_8_5zigjv"
+    },
+    {
+      "id": "stu_9",
+      "name": "Ngô Gia Huy",
+      "phone": "0989 990 011",
+      "parentName": "Chú Huy",
+      "groupId": "grp_toan9onthi",
+      "joinedAt": "2026-09-06T10:00:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_9_7sw3zh"
+    },
+    {
+      "id": "stu_10",
+      "name": "Đỗ Hà My",
+      "phone": "0971 112 233",
+      "parentName": "Chị My",
+      "groupId": "grp_toan9onthi",
+      "joinedAt": "2026-09-06T11:30:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_10_qhxgwu"
+    },
+    {
+      "id": "stu_11",
+      "name": "Phan Quốc Bảo",
+      "phone": "0972 223 344",
+      "parentName": "Bác Bảo",
+      "groupId": "grp_hinh8b",
+      "joinedAt": "2026-09-07T08:00:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_11_4556xb"
+    },
+    {
+      "id": "stu_12",
+      "name": "Lê Khánh Vy",
+      "phone": "0973 334 455",
+      "parentName": "Cô Vy",
+      "groupId": "grp_hinh8b",
+      "joinedAt": "2026-09-07T09:00:00.000Z",
+      "hasSubmitted": true,
+      "parentToken": "pt_stu_12_hbuuh9"
+    },
+    {
+      "id": "stu_1788949613567_588",
+      "name": "Nguyễn Văn An",
+      "phone": "0987654321",
+      "parentName": "",
+      "parentToken": "pt_mttyes5b_661de399ad51c264",
+      "groupId": "grp_1788949613542_644",
+      "joinedAt": "2026-09-09T10:26:53.567Z",
+      "hasSubmitted": true
+    },
+    {
+      "id": "stu_1788949613588_473",
+      "name": "Trần Thị Bình",
+      "phone": "0901234567",
+      "parentName": "",
+      "parentToken": "pt_mttyes5w_c5364efd71058285",
+      "groupId": "grp_1788949613542_644",
+      "joinedAt": "2026-09-09T10:26:53.588Z",
+      "hasSubmitted": true
+    },
+    {
+      "id": "stu_1788953869232_772",
+      "name": "Trần Bảo Ngọc",
+      "phone": "0912345678",
+      "parentName": "Chị Lan",
+      "parentToken": "pt_mtu0xzu8_7126ad3d927a2a21",
+      "groupId": "grp_1788953864976_668",
+      "joinedAt": "2026-09-09T11:37:49.232Z",
+      "hasSubmitted": true
+    }
+  ],
+  "availabilities": {
+    "stu_1": {
+      "studentId": "stu_1",
+      "groupId": "grp_toan8a",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "3_ct": "preferred",
+        "5_ct": "preferred",
+        "2_ct": "available",
+        "4_ct": "available",
+        "7_c4": "available"
+      }
+    },
+    "stu_2": {
+      "studentId": "stu_2",
+      "groupId": "grp_toan8a",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "3_ct": "preferred",
+        "5_ct": "preferred",
+        "2_ct": "available",
+        "6_ct": "available"
+      }
+    },
+    "stu_3": {
+      "studentId": "stu_3",
+      "groupId": "grp_toan8a",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "3_ct": "preferred",
+        "5_ct": "preferred",
+        "4_ct": "available",
+        "7_c4": "available"
+      }
+    },
+    "stu_4": {
+      "studentId": "stu_4",
+      "groupId": "grp_toan8a",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "3_ct": "preferred",
+        "5_ct": "preferred",
+        "2_ct": "available",
+        "7_c2": "available"
+      }
+    },
+    "stu_5": {
+      "studentId": "stu_5",
+      "groupId": "grp_toan8a",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "3_ct": "preferred",
+        "5_ct": "preferred",
+        "7_c4": "available"
+      }
+    },
+    "stu_7": {
+      "studentId": "stu_7",
+      "groupId": "grp_toan9onthi",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "4_ct": "preferred",
+        "6_ct": "preferred",
+        "7_c2": "available",
+        "CN_c1": "available"
+      }
+    },
+    "stu_8": {
+      "studentId": "stu_8",
+      "groupId": "grp_toan9onthi",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "4_ct": "preferred",
+        "6_ct": "preferred",
+        "7_c1": "available",
+        "7_c2": "available"
+      }
+    },
+    "stu_9": {
+      "studentId": "stu_9",
+      "groupId": "grp_toan9onthi",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "4_ct": "preferred",
+        "7_c2": "preferred",
+        "6_ct": "available",
+        "CN_c1": "available"
+      }
+    },
+    "stu_10": {
+      "studentId": "stu_10",
+      "groupId": "grp_toan9onthi",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "6_ct": "preferred",
+        "7_c2": "preferred",
+        "4_ct": "available",
+        "CN_c3": "available"
+      }
+    },
+    "stu_11": {
+      "studentId": "stu_11",
+      "groupId": "grp_hinh8b",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "7_c4": "preferred",
+        "5_ct": "preferred",
+        "3_c4": "available"
+      }
+    },
+    "stu_12": {
+      "studentId": "stu_12",
+      "groupId": "grp_hinh8b",
+      "updatedAt": "2026-09-09T09:54:51.818Z",
+      "availabilities": {
+        "7_c4": "preferred",
+        "5_ct": "available",
+        "3_ct": "available"
+      }
+    },
+    "stu_1788949613567_588": {
+      "studentId": "stu_1788949613567_588",
+      "groupId": "grp_1788949613542_644",
+      "updatedAt": "2026-09-09T10:26:53.575Z",
+      "availabilities": {
+        "2_ct": "preferred",
+        "4_ct": "preferred",
+        "6_ct": "unavailable"
+      }
+    },
+    "stu_1788949613588_473": {
+      "studentId": "stu_1788949613588_473",
+      "groupId": "grp_1788949613542_644",
+      "updatedAt": "2026-09-09T10:26:53.588Z",
+      "availabilities": {
+        "2_ct": "preferred",
+        "4_ct": "preferred"
+      }
+    },
+    "stu_1788953869232_772": {
+      "studentId": "stu_1788953869232_772",
+      "groupId": "grp_1788953864976_668",
+      "updatedAt": "2026-09-09T11:37:58.313Z",
+      "availabilities": {
+        "2_c3": "available",
+        "4_c3": "preferred",
+        "6_c3": "preferred"
+      }
+    }
+  },
+  "schedules": [
+    {
+      "id": "sess_grp_1788949613542_644_2_ct_1788949613609_195",
+      "groupId": "grp_1788949613542_644",
+      "dayOfWeek": "2",
+      "slot": "ct",
+      "startTime": "19:00",
+      "endTime": "20:30",
+      "isLocked": false,
+      "status": "tentative",
+      "studentIds": [
+        "stu_1788949613567_588",
+        "stu_1788949613588_473"
+      ]
+    },
+    {
+      "id": "sess_grp_1788949613542_644_4_ct_1788949613609_350",
+      "groupId": "grp_1788949613542_644",
+      "dayOfWeek": "4",
+      "slot": "ct",
+      "startTime": "19:00",
+      "endTime": "20:30",
+      "isLocked": false,
+      "status": "tentative",
+      "studentIds": [
+        "stu_1788949613567_588",
+        "stu_1788949613588_473"
+      ]
+    },
+    {
+      "id": "sess_grp_1788953864976_668_4_c3_1788953893759_111",
+      "groupId": "grp_1788953864976_668",
+      "dayOfWeek": "4",
+      "slot": "c3",
+      "startTime": "14:00",
+      "endTime": "15:30",
+      "isLocked": false,
+      "status": "tentative",
+      "studentIds": [
+        "stu_1788953869232_772"
+      ]
+    },
+    {
+      "id": "sess_grp_1788953864976_668_6_c3_1788953893759_190",
+      "groupId": "grp_1788953864976_668",
+      "dayOfWeek": "6",
+      "slot": "c3",
+      "startTime": "14:00",
+      "endTime": "15:30",
+      "isLocked": false,
+      "status": "tentative",
+      "studentIds": [
+        "stu_1788953869232_772"
+      ]
+    }
+  ],
   "lastOptimizationResult": null,
-  "isRealDataMode": true
+  "isRealDataMode": false
 }

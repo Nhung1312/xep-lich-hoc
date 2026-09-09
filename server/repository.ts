@@ -1,13 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import pg from 'pg';
 import {
   Group,
   Student,
   StudentAvailabilityDoc,
   TeacherConfig,
   ScheduleSession,
-  OptimizationResult,
   ScheduleCombinationOption,
   AvailabilityStatus,
   normalizeSlotKey,
@@ -21,18 +21,21 @@ import {
   createInitialSeedData,
 } from './db.ts';
 
+const { Pool } = pg;
+
+// Local file storage locations
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DATA_DIR, 'app_data.json');
-const TMP_DB_FILE = path.resolve(DATA_DIR, 'app_data.json.tmp');
+const TMP_DB_FILE = path.resolve('/tmp', 'app_data.json');
 
 export interface IDatabaseRepository {
-  getState(): AppDatabase;
-  saveState(data: AppDatabase): void;
-  getGroupByCode(code: string): Group | null;
+  getState(): Promise<AppDatabase>;
+  saveState(data: AppDatabase): Promise<void>;
+  getGroupByCode(code: string): Promise<Group | null>;
   getStudentByParentToken(
     code: string,
     token: string
-  ): { student: Student; availability: StudentAvailabilityDoc | null } | null;
+  ): Promise<{ student: Student; availability: StudentAvailabilityDoc | null } | null>;
   upsertParentSubmission(params: {
     groupId: string;
     studentName: string;
@@ -41,113 +44,251 @@ export interface IDatabaseRepository {
     availabilities: Record<string, AvailabilityStatus>;
     studentId?: string;
     parentToken?: string;
-  }): {
+  }): Promise<{
     student: Student;
     parentToken: string;
     availability: StudentAvailabilityDoc;
     isNew: boolean;
-  };
-  isGroupLocked(groupId: string): boolean;
-  lockGroup(groupId: string, isLocked: boolean): Group | null;
-  confirmGroup(groupId: string): Group | null;
-  resetGroup(groupId: string): boolean;
+  }>;
+  isGroupLocked(groupId: string): Promise<boolean>;
+  lockGroup(groupId: string, isLocked: boolean): Promise<Group | null>;
+  confirmGroup(groupId: string): Promise<Group | null>;
+  resetGroup(groupId: string): Promise<boolean>;
   selectGroupOption(
     groupId: string,
     option: ScheduleCombinationOption
-  ): { group: Group; schedules: ScheduleSession[] };
-  saveManualSchedules(schedules: ScheduleSession[]): { success: boolean; count: number };
-  saveTeacherConfig(config: Partial<TeacherConfig>): TeacherConfig;
-  createGroup(groupData: Partial<Group>): Group;
-  updateGroup(id: string, groupData: Partial<Group>): Group | null;
-  deleteGroup(id: string): boolean;
-  createStudent(studentData: Partial<Student>): Student;
-  updateStudent(id: string, studentData: Partial<Student>): Student | null;
-  deleteStudent(id: string): boolean;
-  switchToRealMode(): AppDatabase;
-  resetToDemoSeed(): AppDatabase;
+  ): Promise<{ group: Group; schedules: ScheduleSession[] }>;
+  saveManualSchedules(schedules: ScheduleSession[]): Promise<{ success: boolean; count: number }>;
+  saveTeacherConfig(config: Partial<TeacherConfig>): Promise<TeacherConfig>;
+  createGroup(groupData: Partial<Group>): Promise<Group>;
+  updateGroup(id: string, groupData: Partial<Group>): Promise<Group | null>;
+  deleteGroup(id: string): Promise<boolean>;
+  createStudent(studentData: Partial<Student>): Promise<Student>;
+  updateStudent(id: string, studentData: Partial<Student>): Promise<Student | null>;
+  deleteStudent(id: string): Promise<boolean>;
+  switchToRealMode(): Promise<AppDatabase>;
+  resetToDemoSeed(): Promise<AppDatabase>;
+  getDatabaseType(): 'postgresql' | 'local_file';
 }
 
-export class JsonFileDatabaseRepository implements IDatabaseRepository {
+export class PostgresAndFileDatabaseRepository implements IDatabaseRepository {
   private cache: AppDatabase | null = null;
+  private pgPool: pg.Pool | null = null;
+  private isTableInitialized = false;
 
   constructor() {
-    this.ensureDataDir();
+    this.initPool();
   }
 
-  private ensureDataDir(): void {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+  private getConnectionString(): string | null {
+    return (
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_URL ||
+      process.env.POSTGRES_PRISMA_URL ||
+      null
+    );
+  }
+
+  public getDatabaseType(): 'postgresql' | 'local_file' {
+    return this.getConnectionString() ? 'postgresql' : 'local_file';
+  }
+
+  private initPool(): void {
+    const connStr = this.getConnectionString();
+    if (!connStr) {
+      return;
+    }
+
+    try {
+      const isLocalhost = connStr.includes('localhost') || connStr.includes('127.0.0.1');
+      this.pgPool = new Pool({
+        connectionString: connStr,
+        ssl: isLocalhost ? false : { rejectUnauthorized: false },
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      });
+
+      this.pgPool.on('error', (err) => {
+        console.warn('PostgreSQL Pool background warning:', err.message);
+      });
+    } catch (err) {
+      console.warn('Failed to initialize PostgreSQL pool, falling back to local storage:', err);
+      this.pgPool = null;
     }
   }
 
-  public getState(): AppDatabase {
+  private async ensurePostgresTable(): Promise<boolean> {
+    if (!this.pgPool) return false;
+    if (this.isTableInitialized) return true;
+
+    try {
+      await this.pgPool.query(`
+        CREATE TABLE IF NOT EXISTS teacher_scheduler_state (
+          id VARCHAR(50) PRIMARY KEY,
+          data JSONB NOT NULL,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+      `);
+      this.isTableInitialized = true;
+      return true;
+    } catch (err) {
+      console.warn('Could not initialize PostgreSQL table:', err);
+      return false;
+    }
+  }
+
+  private ensureLocalDir(): void {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+    } catch {
+      // Ignored for read-only filesystem environments like Vercel
+    }
+  }
+
+  private readFromLocalFile(): AppDatabase | null {
+    try {
+      // Try local DATA_DIR first
+      if (fs.existsSync(DB_FILE)) {
+        const content = fs.readFileSync(DB_FILE, 'utf-8');
+        return JSON.parse(content);
+      }
+      // Try /tmp fallback
+      if (fs.existsSync(TMP_DB_FILE)) {
+        const content = fs.readFileSync(TMP_DB_FILE, 'utf-8');
+        return JSON.parse(content);
+      }
+    } catch (err) {
+      console.warn('Error reading local file DB:', err);
+    }
+    return null;
+  }
+
+  private writeToLocalFile(data: AppDatabase): void {
+    const jsonStr = JSON.stringify(data, null, 2);
+    // 1. Try standard DB_FILE
+    try {
+      this.ensureLocalDir();
+      fs.writeFileSync(DB_FILE, jsonStr, 'utf-8');
+      return;
+    } catch {
+      // If read-only filesystem, try /tmp
+    }
+
+    try {
+      fs.writeFileSync(TMP_DB_FILE, jsonStr, 'utf-8');
+    } catch (err) {
+      console.warn('Could not write to local file or /tmp:', err);
+    }
+  }
+
+  private normalizeData(data: AppDatabase): AppDatabase {
+    if (Array.isArray(data.groups)) {
+      for (const g of data.groups) {
+        if (!g.status) g.status = g.isLocked ? 'locked' : 'draft';
+      }
+    }
+    if (Array.isArray(data.students)) {
+      for (const s of data.students) {
+        if (!s.parentToken) {
+          s.parentToken = `pt_${s.id}_${Math.random().toString(36).substring(2, 8)}`;
+        }
+      }
+    }
+    if (!data.availabilities) {
+      data.availabilities = {};
+    }
+    if (!Array.isArray(data.schedules)) {
+      data.schedules = [];
+    }
+    return data;
+  }
+
+  public async getState(): Promise<AppDatabase> {
+    // 1. If PostgreSQL pool is available, try to fetch from DB
+    if (this.pgPool) {
+      try {
+        const tableReady = await this.ensurePostgresTable();
+        if (tableReady) {
+          const res = await this.pgPool.query(
+            `SELECT data FROM teacher_scheduler_state WHERE id = 'main_state' LIMIT 1;`
+          );
+          if (res.rows.length > 0 && res.rows[0].data) {
+            const data = this.normalizeData(res.rows[0].data as AppDatabase);
+            this.cache = data;
+            return data;
+          } else {
+            // Seed DB if table is empty
+            const initial = createInitialSeedData();
+            await this.saveState(initial);
+            this.cache = initial;
+            return initial;
+          }
+        }
+      } catch (err) {
+        console.warn('PostgreSQL fetch error, falling back to cache/file:', err);
+      }
+    }
+
+    // 2. Cache fallback
     if (this.cache) {
       return this.cache;
     }
 
-    try {
-      this.ensureDataDir();
-      if (fs.existsSync(DB_FILE)) {
-        const content = fs.readFileSync(DB_FILE, 'utf-8');
-        const parsed: AppDatabase = JSON.parse(content);
-        // Normalize any missing fields
-        if (Array.isArray(parsed.groups)) {
-          for (const g of parsed.groups) {
-            if (!g.status) g.status = g.isLocked ? 'locked' : 'draft';
-          }
-        }
-        if (Array.isArray(parsed.students)) {
-          for (const s of parsed.students) {
-            if (!s.parentToken) {
-              s.parentToken = `pt_${s.id}_${Math.random().toString(36).substring(2, 8)}`;
-            }
-          }
-        }
-        this.cache = parsed;
-        return this.cache;
-      }
-    } catch (err) {
-      console.warn('Error loading JSON DB, reverting to initial seed:', err);
+    // 3. Local file fallback
+    const fromFile = this.readFromLocalFile();
+    if (fromFile) {
+      this.cache = this.normalizeData(fromFile);
+      return this.cache;
     }
 
+    // 4. Seed fallback
     this.cache = createInitialSeedData();
-    this.saveState(this.cache);
+    this.writeToLocalFile(this.cache);
     return this.cache;
   }
 
-  public saveState(data: AppDatabase): void {
-    try {
-      this.ensureDataDir();
-      // Atomic write: write to temp file then rename
-      const jsonStr = JSON.stringify(data, null, 2);
-      fs.writeFileSync(TMP_DB_FILE, jsonStr, 'utf-8');
-      fs.renameSync(TMP_DB_FILE, DB_FILE);
-      this.cache = data;
-    } catch (err) {
-      console.error('Failed to save state to disk:', err);
-      // Fallback direct write
+  public async saveState(data: AppDatabase): Promise<void> {
+    this.cache = data;
+
+    // 1. Save to PostgreSQL if pool exists
+    if (this.pgPool) {
       try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
-        this.cache = data;
-      } catch (innerErr) {
-        console.error('Critical fallback save error:', innerErr);
+        const tableReady = await this.ensurePostgresTable();
+        if (tableReady) {
+          await this.pgPool.query(
+            `INSERT INTO teacher_scheduler_state (id, data, updated_at)
+             VALUES ('main_state', $1, NOW())
+             ON CONFLICT (id) DO UPDATE
+             SET data = $1, updated_at = NOW();`,
+            [JSON.stringify(data)]
+          );
+          return;
+        }
+      } catch (err) {
+        console.error('PostgreSQL save error:', err);
       }
     }
+
+    // 2. Fallback to local file
+    this.writeToLocalFile(data);
   }
 
-  public getGroupByCode(code: string): Group | null {
-    const db = this.getState();
+  public async getGroupByCode(code: string): Promise<Group | null> {
+    const db = await this.getState();
     const cleanCode = code.trim().toUpperCase();
     return db.groups.find((g) => g.code.toUpperCase() === cleanCode) || null;
   }
 
-  public getStudentByParentToken(
+  public async getStudentByParentToken(
     code: string,
     token: string
-  ): { student: Student; availability: StudentAvailabilityDoc | null } | null {
+  ): Promise<{ student: Student; availability: StudentAvailabilityDoc | null } | null> {
     if (!token || !code) return null;
-    const db = this.getState();
-    const group = this.getGroupByCode(code);
+    const db = await this.getState();
+    const group = await this.getGroupByCode(code);
     if (!group) return null;
 
     const student = db.students.find(
@@ -170,7 +311,7 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     };
   }
 
-  public upsertParentSubmission(params: {
+  public async upsertParentSubmission(params: {
     groupId: string;
     studentName: string;
     phone: string;
@@ -178,14 +319,14 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     availabilities: Record<string, AvailabilityStatus>;
     studentId?: string;
     parentToken?: string;
-  }): {
+  }): Promise<{
     student: Student;
     parentToken: string;
     availability: StudentAvailabilityDoc;
     isNew: boolean;
-  } {
+  }> {
     const { groupId, studentName, phone, parentName, availabilities, studentId, parentToken } = params;
-    const db = this.getState();
+    const db = await this.getState();
 
     const group = db.groups.find((g) => g.id === groupId);
     if (!group) {
@@ -229,7 +370,7 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       );
     }
 
-    // 4. Match by student name in this group (especially for pre-created students without phone)
+    // 4. Match by student name in this group
     if (!student) {
       student = db.students.find(
         (s) =>
@@ -239,12 +380,10 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       );
     }
 
-    // Generate a secure parent access token if student doesn't have one
     const generateToken = () =>
       `pt_${Date.now().toString(36)}_${crypto.randomBytes(8).toString('hex')}`;
 
     if (student) {
-      // Update existing student
       student.name = cleanName;
       if (cleanPhone) student.phone = cleanPhone;
       if (cleanParentName) student.parentName = cleanParentName;
@@ -253,7 +392,6 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
         student.parentToken = generateToken();
       }
     } else {
-      // Create new student
       isNew = true;
       const newParentToken = generateToken();
       student = {
@@ -269,7 +407,6 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       db.students.push(student);
     }
 
-    // Save student availability
     const availDoc: StudentAvailabilityDoc = {
       studentId: student.id,
       groupId,
@@ -278,7 +415,7 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     };
     db.availabilities[student.id] = availDoc;
 
-    this.saveState(db);
+    await this.saveState(db);
 
     return {
       student,
@@ -288,14 +425,14 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     };
   }
 
-  public isGroupLocked(groupId: string): boolean {
-    const db = this.getState();
+  public async isGroupLocked(groupId: string): Promise<boolean> {
+    const db = await this.getState();
     const group = db.groups.find((g) => g.id === groupId);
     return group?.isLocked === true || group?.status === 'locked';
   }
 
-  public lockGroup(groupId: string, isLocked: boolean): Group | null {
-    const db = this.getState();
+  public async lockGroup(groupId: string, isLocked: boolean): Promise<Group | null> {
+    const db = await this.getState();
     const group = db.groups.find((g) => g.id === groupId);
     if (!group) return null;
 
@@ -310,12 +447,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       }
     }
 
-    this.saveState(db);
+    await this.saveState(db);
     return group;
   }
 
-  public confirmGroup(groupId: string): Group | null {
-    const db = this.getState();
+  public async confirmGroup(groupId: string): Promise<Group | null> {
+    const db = await this.getState();
     const group = db.groups.find((g) => g.id === groupId);
     if (!group) return null;
 
@@ -335,12 +472,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       }
     }
 
-    this.saveState(db);
+    await this.saveState(db);
     return group;
   }
 
-  public resetGroup(groupId: string): boolean {
-    const db = this.getState();
+  public async resetGroup(groupId: string): Promise<boolean> {
+    const db = await this.getState();
     const group = db.groups.find((g) => g.id === groupId);
     if (!group) return false;
 
@@ -352,21 +489,20 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     group.status = 'draft';
     group.selectedOptionId = undefined;
 
-    this.saveState(db);
+    await this.saveState(db);
     return true;
   }
 
-  public selectGroupOption(
+  public async selectGroupOption(
     groupId: string,
     option: ScheduleCombinationOption
-  ): { group: Group; schedules: ScheduleSession[] } {
-    const db = this.getState();
+  ): Promise<{ group: Group; schedules: ScheduleSession[] }> {
+    const db = await this.getState();
     const group = db.groups.find((g) => g.id === groupId);
     if (!group) {
       throw new Error('Nhóm học không tồn tại');
     }
 
-    // 1. Check locked constraint
     if (group.isLocked || group.status === 'locked') {
       throw new Error('Lịch nhóm đã được khóa và không thể thay đổi.');
     }
@@ -375,7 +511,6 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       throw new Error('Phương án lịch không hợp lệ.');
     }
 
-    // 2. Validate option against group & teacher settings
     if (option.sessions.length !== group.sessionsPerWeek) {
       throw new Error(
         `Số buổi của phương án (${option.sessions.length}) không khớp với số buổi quy định của nhóm (${group.sessionsPerWeek} buổi/tuần).`
@@ -388,21 +523,18 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     for (const sess of option.sessions) {
       const normSlot = normalizeSlotKey(sess.slot);
 
-      // Check allowedDays
       if (!allowedDays.includes(sess.dayOfWeek)) {
         throw new Error(
           `Thứ ${sess.dayOfWeek} không nằm trong danh sách các ngày được phép xếp lịch cho nhóm ${group.name}.`
         );
       }
 
-      // Check allowedSlots
       if (!normAllowedSlots.includes(normSlot)) {
         throw new Error(
           `Ca ${getSlotLabel(normSlot)} không nằm trong danh sách ca được phép xếp lịch cho nhóm ${group.name}.`
         );
       }
 
-      // Check teacher slot enabled
       const timeInfo = getSlotTimeDisplay(sess.dayOfWeek, normSlot, db.teacherConfig);
       if (!timeInfo.enabled) {
         throw new Error(
@@ -410,7 +542,6 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
         );
       }
 
-      // Hard constraint: Check teacher conflict with any other group (tentative, confirmed, or locked)
       const conflict = db.schedules.find(
         (s) =>
           s.groupId !== groupId &&
@@ -425,7 +556,6 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       }
     }
 
-    // Check no duplicate slots within the option itself
     const optionSlotKeys = new Set<string>();
     for (const sess of option.sessions) {
       const k = `${sess.dayOfWeek}_${normalizeSlotKey(sess.slot)}`;
@@ -435,11 +565,9 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       optionSlotKeys.add(k);
     }
 
-    // 3. Re-calculate student eligibility server-side (do NOT blindly trust frontend)
     const groupStudents = db.students.filter((s) => s.groupId === groupId);
 
-    // Map occupied slots of students in OTHER groups
-    const occupiedInOtherGroups = new Set<string>(); // `${studentId}_${day}_${slot}`
+    const occupiedInOtherGroups = new Set<string>();
     for (const existingSess of db.schedules) {
       if (existingSess.groupId !== groupId) {
         for (const sid of existingSess.studentIds) {
@@ -452,13 +580,11 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
 
     const eligibleStudentIds: string[] = [];
     for (const student of groupStudents) {
-      // Must have submitted availability
       const availDoc = db.availabilities[student.id];
       if (!student.hasSubmitted || !availDoc) {
         continue;
       }
 
-      // Must be available for ALL sessions in the option, and not occupied in other groups
       let canAttendAll = true;
       for (const sess of option.sessions) {
         const normSlot = normalizeSlotKey(sess.slot);
@@ -480,15 +606,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       }
     }
 
-    // Max students constraint
     if (eligibleStudentIds.length > group.maxStudents) {
       eligibleStudentIds.splice(group.maxStudents);
     }
 
-    // Remove existing sessions for this group
     db.schedules = db.schedules.filter((s) => s.groupId !== groupId);
 
-    // Create tentative sessions
     for (const sess of option.sessions) {
       const normSlot = normalizeSlotKey(sess.slot);
       const timeInfo = getSlotTimeDisplay(sess.dayOfWeek, normSlot, db.teacherConfig);
@@ -509,23 +632,20 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     group.status = 'tentative';
     group.selectedOptionId = option.id;
 
-    this.saveState(db);
+    await this.saveState(db);
     return { group, schedules: db.schedules };
   }
 
-  public saveManualSchedules(schedules: ScheduleSession[]): { success: boolean; count: number } {
-    const db = this.getState();
+  public async saveManualSchedules(schedules: ScheduleSession[]): Promise<{ success: boolean; count: number }> {
+    const db = await this.getState();
 
-    // Identify all locked groups
     const lockedGroupIds = new Set(
       db.groups.filter((g) => g.isLocked || g.status === 'locked').map((g) => g.id)
     );
 
-    // If there are locked groups, verify that their sessions have NOT been altered or removed
     if (lockedGroupIds.size > 0) {
       const existingLockedSessions = db.schedules.filter((s) => lockedGroupIds.has(s.groupId));
 
-      // Check each locked session exists in incoming schedules
       for (const lockedSess of existingLockedSessions) {
         const found = schedules.find(
           (s) =>
@@ -540,15 +660,13 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
         }
       }
 
-      // Check that no incoming new/modified session attempts to alter a locked group
       const incomingLockedSessions = schedules.filter((s) => lockedGroupIds.has(s.groupId));
       if (incomingLockedSessions.length !== existingLockedSessions.length) {
         throw new Error('Lịch nhóm đã được khóa và không thể thay đổi.');
       }
     }
 
-    // Hard constraint: Check that no two groups share the exact same teacher slot
-    const slotMap = new Map<string, string>(); // slotKey -> groupId
+    const slotMap = new Map<string, string>();
     for (const sess of schedules) {
       const key = `${sess.dayOfWeek}_${normalizeSlotKey(sess.slot)}`;
       const existingGroup = slotMap.get(key);
@@ -562,8 +680,7 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       slotMap.set(key, sess.groupId);
     }
 
-    // Hard constraint: Check that no student is double booked at the same slot
-    const studentSlotMap = new Map<string, string>(); // `${studentId}_${day}_${slot}` -> groupId
+    const studentSlotMap = new Map<string, string>();
     for (const sess of schedules) {
       const slotKey = normalizeSlotKey(sess.slot);
       for (const sid of sess.studentIds) {
@@ -581,7 +698,6 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       }
     }
 
-    // Verify group constraints and slot enabled
     for (const sess of schedules) {
       const grp = db.groups.find((g) => g.id === sess.groupId);
       if (grp) {
@@ -600,22 +716,22 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     }
 
     db.schedules = schedules;
-    this.saveState(db);
+    await this.saveState(db);
     return { success: true, count: db.schedules.length };
   }
 
-  public saveTeacherConfig(config: Partial<TeacherConfig>): TeacherConfig {
-    const db = this.getState();
+  public async saveTeacherConfig(config: Partial<TeacherConfig>): Promise<TeacherConfig> {
+    const db = await this.getState();
     db.teacherConfig = {
       ...db.teacherConfig,
       ...config,
     };
-    this.saveState(db);
+    await this.saveState(db);
     return db.teacherConfig;
   }
 
-  public createGroup(groupData: Partial<Group>): Group {
-    const db = this.getState();
+  public async createGroup(groupData: Partial<Group>): Promise<Group> {
+    const db = await this.getState();
     const codeBase = (groupData.name || 'GROUP')
       .replace(/[^a-zA-Z0-9]/g, '')
       .toUpperCase()
@@ -641,12 +757,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     };
 
     db.groups.push(newGroup);
-    this.saveState(db);
+    await this.saveState(db);
     return newGroup;
   }
 
-  public updateGroup(id: string, groupData: Partial<Group>): Group | null {
-    const db = this.getState();
+  public async updateGroup(id: string, groupData: Partial<Group>): Promise<Group | null> {
+    const db = await this.getState();
     const idx = db.groups.findIndex((g) => g.id === id);
     if (idx === -1) return null;
 
@@ -656,12 +772,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       id,
     };
 
-    this.saveState(db);
+    await this.saveState(db);
     return db.groups[idx];
   }
 
-  public deleteGroup(id: string): boolean {
-    const db = this.getState();
+  public async deleteGroup(id: string): Promise<boolean> {
+    const db = await this.getState();
     const grp = db.groups.find((g) => g.id === id);
     if (!grp) return false;
 
@@ -680,12 +796,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       delete db.availabilities[sid];
     }
 
-    this.saveState(db);
+    await this.saveState(db);
     return true;
   }
 
-  public createStudent(studentData: Partial<Student>): Student {
-    const db = this.getState();
+  public async createStudent(studentData: Partial<Student>): Promise<Student> {
+    const db = await this.getState();
     const newStudent: Student = {
       id: `stu_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       name: (studentData.name || '').trim(),
@@ -698,12 +814,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
     };
 
     db.students.push(newStudent);
-    this.saveState(db);
+    await this.saveState(db);
     return newStudent;
   }
 
-  public updateStudent(id: string, studentData: Partial<Student>): Student | null {
-    const db = this.getState();
+  public async updateStudent(id: string, studentData: Partial<Student>): Promise<Student | null> {
+    const db = await this.getState();
     const idx = db.students.findIndex((s) => s.id === id);
     if (idx === -1) return null;
 
@@ -713,12 +829,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       id,
     };
 
-    this.saveState(db);
+    await this.saveState(db);
     return db.students[idx];
   }
 
-  public deleteStudent(id: string): boolean {
-    const db = this.getState();
+  public async deleteStudent(id: string): Promise<boolean> {
+    const db = await this.getState();
     const student = db.students.find((s) => s.id === id);
     if (!student) return false;
 
@@ -729,12 +845,12 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       session.studentIds = session.studentIds.filter((sid) => sid !== id);
     }
 
-    this.saveState(db);
+    await this.saveState(db);
     return true;
   }
 
-  public switchToRealMode(): AppDatabase {
-    const db = this.getState();
+  public async switchToRealMode(): Promise<AppDatabase> {
+    const db = await this.getState();
     const freshTeacher = db.teacherConfig || createDefaultTeacherConfig();
     const realDb: AppDatabase = {
       teacherConfig: freshTeacher,
@@ -745,17 +861,17 @@ export class JsonFileDatabaseRepository implements IDatabaseRepository {
       lastOptimizationResult: null,
       isRealDataMode: true,
     };
-    this.saveState(realDb);
+    await this.saveState(realDb);
     return realDb;
   }
 
-  public resetToDemoSeed(): AppDatabase {
+  public async resetToDemoSeed(): Promise<AppDatabase> {
     const fresh = createInitialSeedData();
     fresh.isRealDataMode = false;
-    this.saveState(fresh);
+    await this.saveState(fresh);
     return fresh;
   }
 }
 
 // Global repository singleton
-export const dbRepository: IDatabaseRepository = new JsonFileDatabaseRepository();
+export const dbRepository: IDatabaseRepository = new PostgresAndFileDatabaseRepository();
