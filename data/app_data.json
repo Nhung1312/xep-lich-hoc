@@ -1,0 +1,423 @@
+{
+  "teacherConfig": {
+    "teacherId": "teacher_1",
+    "teacherName": "Thầy Nguyễn Văn Nam",
+    "phone": "0912 345 678",
+    "defaultSlotTimes": {
+      "c1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": true
+      },
+      "c2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": true
+      },
+      "c3": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "c4": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "ct": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      }
+    },
+    "slotTimes": {
+      "2_c1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "2_m1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "2_c2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "2_m2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "2_c3": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "2_a1": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "2_c4": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "2_a2": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "2_ct": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "2_e1": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "3_c1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "3_m1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "3_c2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "3_m2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "3_c3": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "3_a1": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "3_c4": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "3_a2": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "3_ct": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "3_e1": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "4_c1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "4_m1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "4_c2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "4_m2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "4_c3": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "4_a1": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "4_c4": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "4_a2": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "4_ct": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "4_e1": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "5_c1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "5_m1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "5_c2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "5_m2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "5_c3": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "5_a1": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "5_c4": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "5_a2": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "5_ct": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "5_e1": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "6_c1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "6_m1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": false
+      },
+      "6_c2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "6_m2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": false
+      },
+      "6_c3": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "6_a1": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "6_c4": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "6_a2": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "6_ct": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "6_e1": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "7_c1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": true
+      },
+      "7_m1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": true
+      },
+      "7_c2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": true
+      },
+      "7_m2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": true
+      },
+      "7_c3": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "7_a1": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "7_c4": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "7_a2": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "7_ct": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "7_e1": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "CN_c1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": true
+      },
+      "CN_m1": {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "enabled": true
+      },
+      "CN_c2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": true
+      },
+      "CN_m2": {
+        "startTime": "09:15",
+        "endTime": "10:45",
+        "enabled": true
+      },
+      "CN_c3": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "CN_a1": {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "enabled": true
+      },
+      "CN_c4": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "CN_a2": {
+        "startTime": "15:45",
+        "endTime": "17:15",
+        "enabled": true
+      },
+      "CN_ct": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      },
+      "CN_e1": {
+        "startTime": "19:00",
+        "endTime": "20:30",
+        "enabled": true
+      }
+    }
+  },
+  "groups": [
+    {
+      "id": "grp_1788950662181_756",
+      "code": "7NNGC589",
+      "name": "7 NÂNG CAO",
+      "subject": "Toán",
+      "grade": "Khối 7",
+      "maxStudents": 30,
+      "sessionsPerWeek": 2,
+      "durationMinutes": 90,
+      "allowedDays": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "CN"
+      ],
+      "allowedSlots": [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "ct"
+      ],
+      "teacherId": "teacher_1",
+      "isLocked": false,
+      "status": "draft",
+      "createdAt": "2026-09-09T10:44:22.181Z"
+    }
+  ],
+  "students": [],
+  "availabilities": {},
+  "schedules": [],
+  "lastOptimizationResult": null,
+  "isRealDataMode": true
+}
