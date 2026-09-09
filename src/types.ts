@@ -339,3 +339,24 @@ export function getSlotTimeDisplay(
     enabled: conf?.enabled !== false,
   };
 }
+
+// Runtime placeholders for Node.js native ESM type stripping compatibility
+export const DayKey = undefined;
+export const SlotKey = undefined;
+export const AvailabilityStatus = undefined;
+export const GroupStatus = undefined;
+export const SlotDefinition = undefined;
+export const DaySlotTime = undefined;
+export const TeacherConfig = undefined;
+export const Group = undefined;
+export const Student = undefined;
+export const StudentAvailabilityDoc = undefined;
+export const ScheduleSession = undefined;
+export const OptimizationResult = undefined;
+export const UnassignedStudentDiagnostic = undefined;
+export const GroupSuggestion = undefined;
+export const ScheduleCombinationOption = undefined;
+export const GroupDifficulty = undefined;
+export const ImpactAnalysisResult = undefined;
+export const GlobalOptimizationProposal = undefined;
+export const AppDatabase = undefined;

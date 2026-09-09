@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import pg from 'pg';
-import {
+import type {
   Group,
   Student,
   StudentAvailabilityDoc,
@@ -10,13 +10,15 @@ import {
   ScheduleSession,
   ScheduleCombinationOption,
   AvailabilityStatus,
+} from '../src/types.ts';
+import {
   normalizeSlotKey,
   getSlotLabel,
   getSlotTimeDisplay,
 } from '../src/types.ts';
 import { getStudentSlotStatus } from './scheduler.ts';
+import type { AppDatabase } from './db.ts';
 import {
-  AppDatabase,
   createDefaultTeacherConfig,
   createInitialSeedData,
 } from './db.ts';
@@ -81,12 +83,17 @@ export class PostgresAndFileDatabaseRepository implements IDatabaseRepository {
   }
 
   private getConnectionString(): string | null {
-    return (
+    const raw = (
       process.env.DATABASE_URL ||
       process.env.POSTGRES_URL ||
       process.env.POSTGRES_PRISMA_URL ||
-      null
-    );
+      ''
+    ).trim();
+
+    if (!raw) return null;
+    // Strip wrapping quotes if user pasted connection string with quotes
+    const unquoted = raw.replace(/^["']|["']$/g, '').trim();
+    return unquoted || null;
   }
 
   public getDatabaseType(): 'postgresql' | 'local_file' {
@@ -104,9 +111,9 @@ export class PostgresAndFileDatabaseRepository implements IDatabaseRepository {
       this.pgPool = new Pool({
         connectionString: connStr,
         ssl: isLocalhost ? false : { rejectUnauthorized: false },
-        max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
+        max: 5,
+        idleTimeoutMillis: 10000,
+        connectionTimeoutMillis: 5000,
       });
 
       this.pgPool.on('error', (err) => {
@@ -184,26 +191,44 @@ export class PostgresAndFileDatabaseRepository implements IDatabaseRepository {
     }
   }
 
-  private normalizeData(data: AppDatabase): AppDatabase {
-    if (Array.isArray(data.groups)) {
-      for (const g of data.groups) {
+  private normalizeData(data: unknown): AppDatabase {
+    let parsed: any = data;
+    if (typeof parsed === 'string') {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        parsed = {};
+      }
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      parsed = {};
+    }
+    if (!Array.isArray(parsed.groups)) {
+      parsed.groups = [];
+    } else {
+      for (const g of parsed.groups) {
         if (!g.status) g.status = g.isLocked ? 'locked' : 'draft';
       }
     }
-    if (Array.isArray(data.students)) {
-      for (const s of data.students) {
+    if (!Array.isArray(parsed.students)) {
+      parsed.students = [];
+    } else {
+      for (const s of parsed.students) {
         if (!s.parentToken) {
           s.parentToken = `pt_${s.id}_${Math.random().toString(36).substring(2, 8)}`;
         }
       }
     }
-    if (!data.availabilities) {
-      data.availabilities = {};
+    if (!parsed.availabilities || typeof parsed.availabilities !== 'object') {
+      parsed.availabilities = {};
     }
-    if (!Array.isArray(data.schedules)) {
-      data.schedules = [];
+    if (!Array.isArray(parsed.schedules)) {
+      parsed.schedules = [];
     }
-    return data;
+    if (!parsed.teacherConfig || typeof parsed.teacherConfig !== 'object') {
+      parsed.teacherConfig = createDefaultTeacherConfig();
+    }
+    return parsed as AppDatabase;
   }
 
   public async getState(): Promise<AppDatabase> {
@@ -216,7 +241,7 @@ export class PostgresAndFileDatabaseRepository implements IDatabaseRepository {
             `SELECT data FROM teacher_scheduler_state WHERE id = 'main_state' LIMIT 1;`
           );
           if (res.rows.length > 0 && res.rows[0].data) {
-            const data = this.normalizeData(res.rows[0].data as AppDatabase);
+            const data = this.normalizeData(res.rows[0].data);
             this.cache = data;
             return data;
           } else {

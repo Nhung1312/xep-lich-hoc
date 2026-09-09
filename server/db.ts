@@ -22,6 +22,8 @@ export interface AppDatabase {
   isRealDataMode?: boolean;
 }
 
+export const AppDatabase = undefined;
+
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.resolve(DATA_DIR, 'app_data.json');
 
