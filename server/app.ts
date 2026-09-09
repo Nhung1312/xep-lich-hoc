@@ -43,8 +43,21 @@ apiRouter.get('/health', (_req, res) => {
 // Get full state (for Teacher dashboard)
 apiRouter.get('/state', async (_req, res) => {
   try {
-    const db = await dbRepository.getState();
-    res.json(db);
+    const timeoutPromise = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), 3000)
+    );
+    const dbPromise = dbRepository.getState();
+    const result = await Promise.race([dbPromise, timeoutPromise]);
+
+    if (result) {
+      res.json(result);
+      return;
+    }
+
+    // If timeout reached, return seed data
+    console.warn('getState timed out, serving initial seed fallback');
+    const fallback = createInitialSeedData();
+    res.json(fallback);
   } catch (err) {
     console.error('API /state error occurred:', err);
     try {

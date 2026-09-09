@@ -14,6 +14,7 @@ import {
   DayKey,
   SlotKey,
 } from './types.ts';
+import { getClientFallbackSeedData } from './fallbackSeed.ts';
 
 export interface AppState {
   teacherConfig: TeacherConfig;
@@ -40,7 +41,7 @@ export const api = {
       console.warn('Network error accessing /api/state:', netErr);
     }
 
-    // Try localStorage backup if server is momentarily unreachable
+    // 1. Try localStorage backup if server is momentarily unreachable
     try {
       const cached = localStorage.getItem('cached_teacher_state');
       if (cached) {
@@ -52,7 +53,13 @@ export const api = {
       }
     } catch {}
 
-    throw new Error('Không thể tải dữ liệu từ máy chủ');
+    // 2. Self-healing client fallback if both server and local cache are unavailable
+    console.info('Initializing dashboard with fallback seed data');
+    const fallback = getClientFallbackSeedData();
+    try {
+      localStorage.setItem('cached_teacher_state', JSON.stringify(fallback));
+    } catch {}
+    return fallback;
   },
 
   async getGroupByCode(code: string): Promise<{
@@ -61,12 +68,29 @@ export const api = {
     slotTimes: TeacherConfig['slotTimes'];
     defaultSlotTimes?: TeacherConfig['defaultSlotTimes'];
   }> {
-    const res = await fetch(`/api/groups/by-code/${encodeURIComponent(code)}`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Không tìm thấy nhóm học');
-    }
-    return res.json();
+    try {
+      const res = await fetch(`/api/groups/by-code/${encodeURIComponent(code)}`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
+
+    // Fallback: search in cached state or fallback seed
+    try {
+      const cachedStr = localStorage.getItem('cached_teacher_state');
+      const state: AppState = cachedStr ? JSON.parse(cachedStr) : getClientFallbackSeedData();
+      const group = state.groups.find((g) => g.code.toUpperCase() === code.trim().toUpperCase());
+      if (group) {
+        return {
+          group,
+          teacherName: state.teacherConfig.teacherName,
+          slotTimes: state.teacherConfig.slotTimes,
+          defaultSlotTimes: state.teacherConfig.defaultSlotTimes,
+        };
+      }
+    } catch {}
+
+    throw new Error('Không tìm thấy nhóm học');
   },
 
   async createGroup(data: Partial<Group>): Promise<Group> {

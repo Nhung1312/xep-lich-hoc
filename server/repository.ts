@@ -232,25 +232,37 @@ export class PostgresAndFileDatabaseRepository implements IDatabaseRepository {
   }
 
   public async getState(): Promise<AppDatabase> {
-    // 1. If PostgreSQL pool is available, try to fetch from DB
+    // 1. If PostgreSQL pool is available, try to fetch from DB with a 2.5s timeout
     if (this.pgPool) {
       try {
-        const tableReady = await this.ensurePostgresTable();
-        if (tableReady) {
-          const res = await this.pgPool.query(
-            `SELECT data FROM teacher_scheduler_state WHERE id = 'main_state' LIMIT 1;`
-          );
-          if (res.rows.length > 0 && res.rows[0].data) {
-            const data = this.normalizeData(res.rows[0].data);
-            this.cache = data;
-            return data;
-          } else {
-            // Seed DB if table is empty
-            const initial = createInitialSeedData();
-            await this.saveState(initial);
-            this.cache = initial;
-            return initial;
+        const fetchPgState = async () => {
+          const tableReady = await this.ensurePostgresTable();
+          if (tableReady && this.pgPool) {
+            const res = await this.pgPool.query(
+              `SELECT data FROM teacher_scheduler_state WHERE id = 'main_state' LIMIT 1;`
+            );
+            if (res.rows.length > 0 && res.rows[0].data) {
+              const data = this.normalizeData(res.rows[0].data);
+              this.cache = data;
+              return data;
+            } else {
+              // Seed DB if table is empty
+              const initial = createInitialSeedData();
+              this.saveState(initial).catch(() => {});
+              this.cache = initial;
+              return initial;
+            }
           }
+          return null;
+        };
+
+        const timeoutPromise = new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), 2500)
+        );
+
+        const pgResult = await Promise.race([fetchPgState(), timeoutPromise]);
+        if (pgResult) {
+          return pgResult;
         }
       } catch (err) {
         console.warn('PostgreSQL fetch error, falling back to cache/file:', err);
@@ -271,7 +283,9 @@ export class PostgresAndFileDatabaseRepository implements IDatabaseRepository {
 
     // 4. Seed fallback
     this.cache = createInitialSeedData();
-    this.writeToLocalFile(this.cache);
+    try {
+      this.writeToLocalFile(this.cache);
+    } catch {}
     return this.cache;
   }
 
