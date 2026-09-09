@@ -624,7 +624,8 @@ apiRouter.post('/reset-data', async (_req, res) => {
 app.use('/api', apiRouter);
 
 // Fallback for unmatched API routes so serverless never hangs
-app.use((req, res) => {
+// LƯU Ý: Đây là phần được sửa (Thêm '/api')
+app.use('/api', (req, res) => {
   res.status(404).json({
     error: `Route not found: ${req.method} ${req.url}`,
     timestamp: new Date().toISOString(),
