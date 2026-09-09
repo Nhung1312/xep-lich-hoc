@@ -36,6 +36,7 @@ import {
 export default function App() {
   const [role, setRole] = useState<'teacher' | 'parent'>('teacher');
   const [parentInitialCode, setParentInitialCode] = useState<string>('');
+  const [isSharedLink, setIsSharedLink] = useState(false); // Biến bảo mật: Đánh dấu link chia sẻ cho phụ huynh
 
   const [state, setState] = useState<AppState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +67,7 @@ export default function App() {
         setRole('parent');
         if (codeParam) {
           setParentInitialCode(codeParam);
+          setIsSharedLink(true); // Kích hoạt chế độ ẩn Navbar
         }
       }
     }
@@ -244,14 +246,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans">
-      {/* Top Navigation */}
-      <Navbar
-        currentRole={role}
-        onSelectRole={setRole}
-        onResetSeed={handleResetSeed}
-        onSwitchToReal={handleSwitchToReal}
-        isResetting={isResetting}
-      />
+      {/* Top Navigation - Tự động ẩn nếu phụ huynh mở bằng link chứa mã nhóm */}
+      {!isSharedLink && (
+        <Navbar
+          currentRole={role}
+          onSelectRole={setRole}
+          onResetSeed={handleResetSeed}
+          onSwitchToReal={handleSwitchToReal}
+          isResetting={isResetting}
+        />
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
@@ -259,7 +263,8 @@ export default function App() {
           /* PARENT PORTAL */
           <ParentPortal
             initialCode={parentInitialCode}
-            onBackToTeacher={() => setRole('teacher')}
+            // Vô hiệu hóa nút chuyển về Giáo viên nếu đang xem qua link chia sẻ
+            onBackToTeacher={isSharedLink ? undefined : () => setRole('teacher')}
           />
         ) : (
           /* TEACHER DASHBOARD */
