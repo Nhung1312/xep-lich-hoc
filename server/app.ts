@@ -620,9 +620,8 @@ apiRouter.post('/reset-data', async (_req, res) => {
   }
 });
 
-// Mount router at both /api and root / so Vercel rewrites work seamlessly
+// Mount router at /api
 app.use('/api', apiRouter);
-app.use('/', apiRouter);
 
 // Fallback for unmatched API routes so serverless never hangs
 app.use((req, res) => {
