@@ -26,9 +26,33 @@ export interface AppState {
 
 export const api = {
   async getState(): Promise<AppState> {
-    const res = await fetch('/api/state');
-    if (!res.ok) throw new Error('Không thể tải dữ liệu từ máy chủ');
-    return res.json();
+    try {
+      const res = await fetch('/api/state');
+      if (res.ok) {
+        const data = await res.json();
+        try {
+          localStorage.setItem('cached_teacher_state', JSON.stringify(data));
+        } catch {}
+        return data;
+      }
+      console.warn('API /api/state returned non-OK status:', res.status);
+    } catch (netErr) {
+      console.warn('Network error accessing /api/state:', netErr);
+    }
+
+    // Try localStorage backup if server is momentarily unreachable
+    try {
+      const cached = localStorage.getItem('cached_teacher_state');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && Array.isArray(parsed.groups)) {
+          console.info('Loaded state from local cache');
+          return parsed;
+        }
+      }
+    } catch {}
+
+    throw new Error('Không thể tải dữ liệu từ máy chủ');
   },
 
   async getGroupByCode(code: string): Promise<{

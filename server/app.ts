@@ -21,6 +21,16 @@ app.use(express.json());
 
 const apiRouter = express.Router();
 
+// Root status endpoint
+apiRouter.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Teacher Scheduler API is operational',
+    database: dbRepository.getDatabaseType(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health check
 apiRouter.get('/health', (_req, res) => {
   res.json({
@@ -600,5 +610,21 @@ apiRouter.post('/reset-data', async (_req, res) => {
 // Mount router at both /api and root / so Vercel rewrites work seamlessly
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
+
+// Fallback for unmatched API routes so serverless never hangs
+app.use((req, res) => {
+  res.status(404).json({
+    error: `Route not found: ${req.method} ${req.url}`,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Error handling middleware
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error('Express server unhandled error:', err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: err?.message || 'Lỗi xử lý máy chủ' });
+  }
+});
 
 export default app;
