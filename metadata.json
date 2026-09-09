@@ -1,0 +1,6 @@
+{
+  "name": "Xếp Lịch Học Tự Động",
+  "description": "Hệ thống quản lý và tự động tối ưu hóa xếp lịch học thông minh cho giáo viên và phụ huynh",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
