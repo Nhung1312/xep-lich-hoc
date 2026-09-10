@@ -64,7 +64,7 @@ export function createDefaultTeacherConfig(): TeacherConfig {
 
   return {
     teacherId: 'teacher_1',
-    teacherName: 'Thầy Nguyễn Văn Nam',
+    teacherName: 'Cô Nguyễn Nhung',
     phone: '0912 345 678',
     defaultSlotTimes,
     slotTimes,
